@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Royal Mystery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400&family=Great+Vibes&display=swap" rel="stylesheet">
+    <style>
+        /* --- PERFORMANCE & LUXURY RESET --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
+        
+        :root { 
+            --lux-black: #050505;
+            --lux-brown: #1a1512; 
+            --lux-gold: #cfa156;   
+            --lux-white: #e0e0e0;
+            --font-head: 'Cinzel', serif;
+            --font-body: 'Lato', sans-serif;
+        }
+
+        body { 
+            background: var(--lux-black); 
+            color: var(--lux-white); 
+            font-family: var(--font-body); 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+
+        /* --- LOADING SCREEN --- */
+        #loader {
+            position: fixed; inset: 0; z-index: 9999;
+            background: #000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 1s ease;
+        }
+        .loader-text {
+            color: var(--lux-gold); font-family: var(--font-head); font-size: 1.5rem; letter-spacing: 5px;
+            animation: pulse 1.5s infinite;
+        }
+        .loader-bar {
+            width: 200px; height: 2px; background: #333; margin-top: 20px;
+            position: relative; overflow: hidden;
+        }
+        .loader-progress {
+            position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: var(--lux-gold);
+            animation: loadAnim 2s infinite linear;
+        }
+        @keyframes loadAnim { 0% { left: -50%; } 100% { left: 100%; } }
+
+        /* --- SCENES --- */
+        #intro-scene, #hallway-scene, #final-scene { position: fixed; inset: 0; width: 100%; height: 100%; }
+        
+        #intro-scene { 
+            z-index: 100; 
+            background: var(--lux-black); 
+            display: flex; justify-content: center; align-items: center; 
+            opacity: 0; transition: opacity 1.5s ease; /* Hidden by default until loaded */
+        }
+
+        /* VIDEO OPTIMIZATION */
+        #intro-video, #corridor-video-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        
+        /* OVERLAY - Simplified for performance */
+        .overlay { 
+            position: absolute; inset: 0; 
+            background: radial-gradient(circle at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.8) 100%); 
+            z-index: 1; 
+            pointer-events: none;
+        }
+
+        #hallway-scene { display: none; z-index: 50; flex-direction: column; align-items: center; justify-content: center; }
+
+        /* --- UI ELEMENTS --- */
+        h2 {
+            font-family: var(--font-head);
+            color: var(--lux-gold);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-size: 1.8rem;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+            position: relative; z-index: 10;
+        }
+
+        /* --- DOORS --- */
+        .door-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 15px; 
+            margin-top: 20px; 
+            position: relative; 
+            z-index: 10;
+            width: 90%; max-width: 400px;
+        }
+        #final-door-wrapper { grid-column: span 2; display: flex; justify-content: center; }
+        
+        .door-card {
+            width: 100%;
+            height: 130px;
+            background: rgba(20, 20, 20, 0.7); /* Darker, less blur for performance */
+            border: 1px solid rgba(207, 161, 86, 0.3);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; 
+            position: relative;
+        }
+        .door-card:active { border-color: var(--lux-gold); background: rgba(50,50,50,0.8); }
+        .door-status { font-size: 2.5rem; filter: drop-shadow(0 0 5px rgba(207,161,86,0.5)); }
+        .door-locked { filter: grayscale(1); opacity: 0.7; border-color: #333; }
+
+        /* --- MODALS --- */
+        .modal { 
+            display: none; position: fixed; inset: 0; z-index: 200; 
+            background: rgba(0,0,0,0.95); 
+            justify-content: center; align-items: center; padding: 20px; 
+        }
+        
+        .modal-content {
+            background-color: var(--lux-brown);
+            border: 1px solid var(--lux-gold);
+            padding: 25px; 
+            text-align: center; 
+            width: 100%; max-width: 500px; 
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+            max-height: 90vh; overflow-y: auto; 
+        }
+        .modal-overlay-bg { display: none; } 
+
+        /* --- BUTTONS --- */
+        .btn-action, .start-btn, .back-hallway-btn, #success-exit-btn {
+            background: rgba(0,0,0,0.8); 
+            border: 1px solid var(--lux-gold);
+            color: var(--lux-gold);
+            padding: 12px 30px;
+            font-family: var(--font-head);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 20px;
+            position: relative; 
+            z-index: 1000; 
+        }
+        
+        .start-btn {
+             box-shadow: 0 0 15px rgba(207,161,86,0.3);
+             animation: pulse 2s infinite;
+        }
+
+        .close-btn { position: absolute; right: 15px; top: 10px; font-size: 30px; cursor: pointer; color: var(--lux-gold); z-index: 10; font-weight: 100; }
+
+        /* --- PUZZLE 4x4 --- */
+        #puzzle-container {
+            display: grid; 
+            grid-template-columns: repeat(4, 75px); 
+            grid-template-rows: repeat(4, 75px);    
+            width: 306px; height: 306px; 
+            margin: 0 auto; 
+            background: #222; 
+            border: 2px solid var(--lux-gold); 
+            gap: 2px; 
+        }
+        .puzzle-tile { 
+            width: 75px; height: 75px; 
+            background-size: 306px 306px; 
+            cursor: pointer; 
+        }
+        .puzzle-empty { background: #000 !important; opacity: 0.5; }
+
+        /* --- SNAKE --- */
+        #snake-canvas { background: #000; border: 1px solid var(--lux-gold); margin: 0 auto; display: block; max-width: 100%; }
+
+        /* --- VIDEOS --- */
+        video { border-radius: 0; border: 1px solid #333; }
+        
+        #wrong-video-container { display: none; margin-top: 15px; }
+        #wrong-video { width: 100%; max-width: 300px; border: 1px solid var(--neon-red); }
+
+        /* --- FINAL SCENE --- */
+        #final-scene { 
+            display: none; z-index: 200; 
+            background: #111; /* Removed gradient animation for performance */
+            background: radial-gradient(circle at center, #2c1b18 0%, #000000 100%);
+            color: var(--lux-gold); 
+            text-align: center; 
+            flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px;
+        }
+
+        .final-glass-card {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--lux-gold);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            position: relative;
+            z-index: 205;
+        }
+
+        .final-title {
+            font-family: var(--font-head);
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: var(--lux-white);
+            text-shadow: 0 0 10px rgba(207,161,86,0.5);
+            letter-spacing: 3px;
+        }
+
+        .final-body {
+            font-size: 1rem;
+            line-height: 2;
+            margin-bottom: 30px;
+            font-family: var(--font-body);
+            color: #ccc;
+            letter-spacing: 1px;
+        }
+
+        .final-signature {
+            font-family: 'Great Vibes', cursive;
+            font-size: 2.5rem;
+            color: var(--lux-gold);
+            display: block;
+            margin-top: 30px;
+        }
+
+        .particle {
+            position: absolute; border-radius: 50%; background: var(--lux-gold);
+            box-shadow: 0 0 2px var(--lux-gold); animation: floatParticle 20s infinite linear; z-index: 201; opacity: 0.4;
+        }
+        @keyframes floatParticle {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            20% { opacity: 0.8; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* HEARTS - Optimized */
+        #hearts-layer { position: absolute; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
+        .floating-heart {
+            position: absolute; bottom: -50px; font-size: 20px; color: #8a0a0a; 
+            animation: floatUp linear infinite;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-110vh) scale(1.2); opacity: 0; }
+        }
+        
+        #dev-btn { position: absolute; top: 10px; left: 10px; z-index: 200; background: transparent; border: none; color: rgba(255,255,255,0.05); font-size: 20px; cursor: pointer; }
+        
+        #passcode-input {
+            background: transparent; border: none; border-bottom: 1px solid var(--lux-gold);
+            color: var(--lux-gold); font-family: var(--font-head); font-size: 2rem; width: 200px; text-align: center; margin-bottom: 20px; letter-spacing: 5px;
+        }
+        #passcode-input::placeholder { color: rgba(207,161,86, 0.3); }
+        #passcode-input:focus { outline: none; border-bottom: 2px solid var(--lux-gold); }
+
+        .riddle-text { font-family: var(--font-head); font-size: 1.1rem; line-height: 1.6; color: #ccc; margin-top: 10px; }
+        .riddle-highlight { color: var(--lux-gold); display: block; margin-top: 15px; font-size: 1.3rem; }
+        
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+    </style>
+</head>
+<body>
+    
+    <div id="loader">
+        <div class="loader-text">THE ROYAL MYSTERY</div>
+        <div class="loader-bar"><div class="loader-progress"></div></div>
+    </div>
+
+    <audio id="bg-music" loop preload="auto"><source src="song.mp3" type="audio/mp3"></audio>
+    <audio id="transition-audio" preload="auto"><source src="transition.mp3" type="audio/mp3"></audio>
+    <audio id="door1-audio" preload="auto"><source src="door1.mp3" type="audio/mp3"></audio>
+    <audio id="door2-audio" preload="auto"><source src="door2.mp3" type="audio/mp3"></audio>
+    <audio id="door3-audio" preload="auto"><source src="door3.mp3" type="audio/mp3"></audio>
+    <audio id="door4-audio" preload="auto"><source src="door4.mp3" type="audio/mp3"></audio>
+    <audio id="room6-audio" preload="auto"><source src="room6.mp3" type="audio/mp3"></audio>
+
+    <div id="intro-scene">
+        <button id="dev-btn" onclick="activateDevMode()">π</button>
+        <video id="intro-video" muted playsinline webkit-playsinline loop preload="auto"><source src="intro.mp4" type="video/mp4"></video>
+        <div class="overlay"></div>
+        <button class="start-btn" onclick="startExperience()">Enter The Mystery</button>
+    </div>
+
+    <div id="hallway-scene">
+        <video id="corridor-video-bg" muted loop playsinline webkit-playsinline preload="auto"><source src="corridor.mp4" type="video/mp4"></video>
+        <div class="overlay"></div>
+        <div id="hearts-layer"></div>
+
+        <div class="hallway-content">
+            <h2>The Gallery</h2>
+            <div class="door-grid">
+                <div class="door-card" onclick="openDoor(1)"><div class="door-status" id="status-1">🧩</div></div>
+                <div class="door-card" onclick="openDoor(2)"><div class="door-status" id="status-2">🐍</div></div>
+                <div class="door-card" onclick="openDoor(3)"><div class="door-status" id="status-3">🎥</div></div>
+                <div class="door-card" onclick="openDoor(4)"><div class="door-status" id="status-4">IV</div></div>
+                <div id="final-door-wrapper">
+                    <div class="door-card door-locked" id="final-door" onclick="tryFinalDoor()" style="max-width:200px;"><div class="door-status">🔒</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-1" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-1" onclick="closeModal()" style="display:none;">×</span>
+            <h2>Fragments</h2>
+            <div id="puzzle-container"></div>
+            <button id="success-exit-btn" style="display:none;" onclick="closeModal()">Unlocked</button>
+            <div id="cheat-input-area" style="display:none; margin-top:10px;">
+                <input type="number" id="cheat-input" placeholder="Code" style="padding:10px; width:100px; border:1px solid #cfa156; background:black; color:white;">
+                <button onclick="verifyCheat()" style="padding:10px; border:1px solid #cfa156; background:#cfa156; color:black; font-weight:bold;">OK</button>
+            </div>
+            <button id="cheat-trigger-btn" onclick="showCheat()" style="display:none; margin-top:20px; background:transparent; border:1px solid red; color:red; padding:5px;">Override</button>
+        </div>
+    </div>
+
+    <div id="modal-2" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-2" onclick="closeModal()" style="display:none;">×</span>
+            <div id="snake-video-container">
+                <video id="snake-video" playsinline webkit-playsinline preload="auto" style="width:100%; border:1px solid var(--lux-gold);"><source src="room2.mp4" type="video/mp4"></video>
+                <button onclick="startSnakeGame()" class="btn-action" style="position:absolute; bottom:10px; right:10px; padding:5px 15px; background:rgba(0,0,0,0.8);">Skip</button>
+            </div>
+            <div id="snake-game-container" style="display:none;">
+                <h2>The Serpent</h2>
+                <canvas id="snake-canvas" width="300" height="300"></canvas>
+                <p style="font-size:0.8rem; color:#888; margin-top:10px; letter-spacing:1px;">SWIPE TO CONTROL</p>
+                <p id="msg-2" style="display:none; color:var(--lux-gold); font-family:var(--font-head); font-size:1.2rem; margin-top:10px;">CLUE: 7</p>
+                <button id="snake-exit-btn" class="btn-action" onclick="closeModal()" style="display:none;">Return</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-3" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-3" onclick="closeModal()">×</span>
+            <h2>Memory Lane</h2>
+            <div id="room3-video-container">
+                <video id="room3-video" controls playsinline webkit-playsinline preload="auto" style="width:100%; border:1px solid var(--lux-gold);"><source src="room3.mp4" type="video/mp4"></video>
+            </div>
+            <div style="margin-top:20px; color:#ccc; font-family:var(--font-body); letter-spacing:1px;">
+                <p>I am the only even prime number.</p>
+                <p style="color:var(--lux-gold); font-size:1.5rem; margin-top:10px;">?</p>
+            </div>
+            <button class="btn-action" onclick="closeModal()">Return</button>
+        </div>
+    </div>
+
+    <div id="modal-generic" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" style="display:block;" onclick="closeModal()">×</span>
+            <h2 id="gen-title"></h2>
+            <div id="gen-body"></div>
+            <button class="btn-action" onclick="closeModal()">Return</button>
+        </div>
+    </div>
+
+    <div id="passcode-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" style="display:block;" onclick="closeModal()">×</span>
+            <h2 style="color:var(--lux-gold);">Final Cipher</h2>
+            <input type="number" id="passcode-input" placeholder="00000">
+            <br><button class="btn-action" onclick="checkFinalCode()">Unlock</button>
+            <div id="wrong-video-container">
+                <video id="wrong-video" playsinline webkit-playsinline preload="auto"><source src="wrong.mp4" type="video/mp4"></video>
+            </div>
+        </div>
+    </div>
+
+    <div id="final-scene">
+        <div id="final-particles"></div>
+        <div class="final-glass-card">
+            <h1 class="final-title">HAPPIEST BIRTHDAY BHANU!!!!</h1>
+            <p class="final-body">
+                YOU DESERVE EVERYTHING🤍🤍<br>
+                <br>
+                <span class="final-signature">Urs Prashanth</span>
+            </p>
+            <button class="back-hallway-btn" onclick="backToHallwayFromFinal()">Explore Again</button>
+        </div>
+    </div>
+
+    <script>
+        const content = {
+            4: { 
+                title: "The Sequence", 
+                body: `
+                <div class="riddle-text">
+                    In the realm of numbers, perfection is rare.<br>
+                    The first is 6.<br>
+                    I am the second.<br><br>
+                    I am the sum of my own parts (1 + 2 + 4 + 7 + 14).<br>
+                    I am the days in a lunar cycle.<br><br>
+                    <span class="riddle-highlight">What number am I?</span>
+                </div>` 
+            }
+        };
+
+        let visited = new Set();
+        let cheatTimer;
+        let musicShouldPlay = false; 
+        let devMode = false;
+
+        // --- LOADING LOGIC ---
+        window.onload = function() {
+            setTimeout(() => {
+                document.getElementById('loader').style.opacity = '0';
+                setTimeout(() => { 
+                    document.getElementById('loader').style.display = 'none'; 
+                    document.getElementById('intro-scene').style.opacity = '1';
+                }, 1000);
+            }, 2000); // Forced 2s wait to ensure smoother playback
+        };
+
+        function playTransition() {
+            let t = document.getElementById('transition-audio');
+            if(t) { t.currentTime = 0; t.play(); }
+        }
+
+        function activateDevMode() {
+            let code = prompt("Enter Key:");
+            if(code === "1827") {
+                devMode = true;
+                visited.add(1); visited.add(2); visited.add(3); visited.add(4);
+                for(let i=1; i<=4; i++) document.getElementById(`status-${i}`).innerText = "✨";
+                let fd = document.getElementById('final-door'); fd.classList.remove('door-locked'); fd.style.border = "1px solid var(--lux-gold)";
+                puzzleSolved = true; 
+                alert("Dev Mode: Exits Unlocked");
+            }
+        }
+
+        function createFloatingHearts() {
+            const container = document.getElementById('hearts-layer');
+            setInterval(() => {
+                const heart = document.createElement('div');
+                heart.classList.add('floating-heart');
+                heart.innerHTML = '❤';
+                let side = Math.random();
+                let leftPos = (side < 0.5) ? Math.random() * 10 : 90 + (Math.random() * 10);
+                heart.style.left = leftPos + '%';
+                const size = 15 + Math.random() * 15;
+                heart.style.fontSize = size + 'px';
+                const duration = 5 + Math.random() * 5;
+                heart.style.animationDuration = duration + 's';
+                container.appendChild(heart);
+                setTimeout(() => { heart.remove(); }, duration * 1000);
+            }, 1800); // SLOWED DOWN FOR PERFORMANCE
+        }
+
+        function createFinalParticles() {
+            const container = document.getElementById('final-particles');
+            container.innerHTML = '';
+            for(let i=0; i<30; i++) { // REDUCED COUNT FOR PERFORMANCE
+                const p = document.createElement('div');
+                p.classList.add('particle');
+                p.style.left = Math.random() * 100 + '%';
+                p.style.top = Math.random() * 100 + '%';
+                const size = Math.random() * 4 + 1;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.animationDuration = (Math.random() * 15 + 10) + 's';
+                p.style.animationDelay = (Math.random() * 5) + 's';
+                container.appendChild(p);
+            }
+        }
+
+        const bgAudio = document.getElementById('bg-music');
+        bgAudio.addEventListener('pause', function() { if(musicShouldPlay) { bgAudio.play(); } });
+        bgAudio.addEventListener('ended', function() { if(musicShouldPlay) { this.currentTime = 0; this.play(); } });
+
+        function startExperience() {
+            musicShouldPlay = true; 
+            let introVid = document.getElementById('intro-video');
+            introVid.play();
+            document.getElementById('bg-music').volume = 0.5;
+            document.getElementById('bg-music').play().catch(e => console.log("Audio Play prevented"));
+            
+            document.querySelector('.start-btn').style.opacity = '0';
+            document.querySelector('#dev-btn').style.opacity = '0';
+            
+            setTimeout(() => {
+                document.getElementById('intro-scene').style.display = 'none';
+                document.getElementById('hallway-scene').style.display = 'flex';
+                document.getElementById('corridor-video-bg').play();
+                createFloatingHearts();
+            }, 1500);
+        }
+
+        function stopAudio() {
+            musicShouldPlay = false; 
+            document.getElementById('bg-music').pause();
+            for(let i=1; i<=4; i++) { let s = document.getElementById(`door${i}-audio`); if(s) { s.pause(); s.currentTime=0; } }
+        }
+
+        function resumeBgMusic() {
+            musicShouldPlay = true;
+            document.getElementById('bg-music').play();
+        }
+
+        function closeModal() {
+            playTransition();
+            document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+            stopAudio();
+            resumeBgMusic();
+            clearTimeout(cheatTimer);
+            document.getElementById('cheat-trigger-btn').style.display='none';
+            if(snakeInterval) clearInterval(snakeInterval);
+            
+            let v2 = document.getElementById('snake-video'); v2.pause();
+            let v3 = document.getElementById('room3-video'); v3.pause();
+            
+            let wv = document.getElementById('wrong-video'); wv.pause();
+            document.getElementById('wrong-video-container').style.display = 'none';
+        }
+
+        function openDoor(id) {
+            playTransition();
+            visited.add(id);
+            stopAudio();
+            let s = document.getElementById(`door${id}-audio`);
+            if(s) s.play();
+
+            document.getElementById(`status-${id}`).innerText = "✨";
+
+            if (id === 1) {
+                document.getElementById('modal-1').style.display = 'flex';
+                if(devMode || puzzleSolved) { 
+                    document.getElementById('close-1').style.display = 'block'; 
+                    document.getElementById('success-exit-btn').style.display = 'block';
+                } else {
+                    document.getElementById('close-1').style.display = 'none';
+                    initPuzzle();
+                    cheatTimer = setTimeout(() => { document.getElementById('cheat-trigger-btn').style.display = 'block'; }, 60000); 
+                }
+            } 
+            else if (id === 2) {
+                document.getElementById('modal-2').style.display = 'flex';
+                if(devMode) document.getElementById('close-2').style.display = 'block';
+                else document.getElementById('close-2').style.display = 'none';
+
+                document.getElementById('snake-video-container').style.display = 'block';
+                document.getElementById('snake-game-container').style.display = 'none';
+                let v = document.getElementById('snake-video');
+                v.currentTime = 0; v.load(); v.muted = false;
+                var promise = v.play();
+                if (promise !== undefined) { promise.catch(error => { v.muted = true; v.play(); }); }
+            }
+            else if (id === 3) {
+                document.getElementById('modal-3').style.display = 'flex';
+                let v = document.getElementById('room3-video'); 
+                v.currentTime = 0; v.load(); v.muted = false;
+                var promise = v.play();
+                if (promise !== undefined) { promise.catch(error => { v.muted = true; v.play(); }); }
+            }
+            else {
+                let d = content[id];
+                document.getElementById('gen-title').innerText = d.title;
+                document.getElementById('gen-body').innerHTML = d.body;
+                document.getElementById('modal-generic').style.display = 'flex';
+            }
+            if(visited.size === 4) {
+                let fd = document.getElementById('final-door'); fd.classList.remove('door-locked'); fd.style.border = "1px solid var(--lux-gold)";
+            }
+        }
+
+        // --- PUZZLE 4x4 ---
+        let puzzleSolved = false; 
+        let pTiles = Array.from({length: 16}, (_, i) => i); 
+        let pEmpty = 15; 
+        let pImgData = '';
+
+        function initPuzzle() {
+            let canvas = document.createElement('canvas'); 
+            canvas.width=306; canvas.height=306; 
+            let ctx=canvas.getContext('2d'); 
+            
+            ctx.fillStyle="#cfa156"; 
+            ctx.fillRect(0,0,306,306); 
+            
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for(let i=1; i<4; i++) { ctx.moveTo(i*76.5, 0); ctx.lineTo(i*76.5, 306); }
+            for(let i=1; i<4; i++) { ctx.moveTo(0, i*76.5); ctx.lineTo(306, i*76.5); }
+            ctx.stroke();
+
+            ctx.fillStyle="#000000"; 
+            ctx.font="bold 150px Cinzel"; 
+            ctx.textAlign="center"; 
+            ctx.textBaseline="middle"; 
+            ctx.fillText("5",153,153); 
+            
+            pImgData=canvas.toDataURL();
+            
+            for(let i=0; i<150; i++) { 
+                let moves=[], r=Math.floor(pEmpty/4), c=pEmpty%4; 
+                if(r>0) moves.push(pEmpty-4); if(r<3) moves.push(pEmpty+4); 
+                if(c>0) moves.push(pEmpty-1); if(c<3) moves.push(pEmpty+1); 
+                let m=moves[Math.floor(Math.random()*moves.length)]; 
+                [pTiles[m], pTiles[pEmpty]] = [pTiles[pEmpty], pTiles[m]]; 
+                pEmpty=m; 
+            } 
+            renderPuzzleDivs();
+        }
+
+        function renderPuzzleDivs() { 
+            const c=document.getElementById('puzzle-container'); c.innerHTML=''; 
+            pTiles.forEach((v,i)=>{ 
+                let d=document.createElement('div'); 
+                d.className=(v===15)?'puzzle-tile puzzle-empty':'puzzle-tile'; 
+                if(v!==15){ 
+                    d.style.backgroundImage=`url(${pImgData})`; 
+                    let r=Math.floor(v/4), c=v%4; 
+                    d.style.backgroundPosition=`-${c*76.5}px -${r*76.5}px`; 
+                    d.onclick=()=>moveTile(i); 
+                } 
+                c.appendChild(d); 
+            }); 
+        }
+
+        function moveTile(idx) { 
+            if(puzzleSolved)return; 
+            let r=Math.floor(idx/4),c=idx%4, er=Math.floor(pEmpty/4),ec=pEmpty%4; 
+            if(Math.abs(r-er)+Math.abs(c-ec)===1){ 
+                [pTiles[idx],pTiles[pEmpty]]=[pTiles[pEmpty],pTiles[idx]]; 
+                pEmpty=idx; 
+                renderPuzzleDivs(); 
+                
+                // WIN CONDITION: CENTER 4 TILES (indices 5, 6, 9, 10)
+                if(pTiles[5]===5 && pTiles[6]===6 && pTiles[9]===9 && pTiles[10]===10){ 
+                    puzzleSolved=true; 
+                    document.getElementById('success-exit-btn').style.display='block';
+                    document.getElementById('close-1').style.display='block';
+                    clearTimeout(cheatTimer); 
+                } 
+            } 
+        }
+
+        function showCheat() { document.getElementById('cheat-input-area').style.display='block'; }
+        function verifyCheat() { 
+            if(document.getElementById('cheat-input').value==="876"){ 
+                puzzleSolved=true; 
+                document.getElementById('success-exit-btn').style.display='block'; 
+                document.getElementById('close-1').style.display='block';
+                document.getElementById('cheat-input-area').style.display='none'; 
+                document.getElementById('cheat-trigger-btn').style.display='none'; 
+            } 
+        }
+
+        // --- SNAKE ---
+        let snake=[], food={}, score=0, snakeDir={x:0,y:0}, snakeInterval; let snakeCanvas=document.getElementById('snake-canvas'); let sCtx=snakeCanvas.getContext('2d');
+        function startSnakeGame() { document.getElementById('snake-video-container').style.display='none'; document.getElementById('snake-game-container').style.display='block'; snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}]; score=0; snakeDir={x:1,y:0}; placeFood(); let tsX,tsY; snakeCanvas.addEventListener('touchstart',e=>{tsX=e.touches[0].clientX;tsY=e.touches[0].clientY;},{passive:false}); snakeCanvas.addEventListener('touchmove',e=>{e.preventDefault();},{passive:false}); snakeCanvas.addEventListener('touchend',e=>{let teX=e.changedTouches[0].clientX,teY=e.changedTouches[0].clientY,dX=teX-tsX,dY=teY-tsY; if(Math.abs(dX)>Math.abs(dY)){if(dX>0&&snakeDir.x!==-1)snakeDir={x:1,y:0};else if(dX<0&&snakeDir.x!==1)snakeDir={x:-1,y:0};}else{if(dY>0&&snakeDir.y!==-1)snakeDir={x:0,y:1};else if(dY<0&&snakeDir.y!==1)snakeDir={x:0,y:-1};}}); if(snakeInterval)clearInterval(snakeInterval); snakeInterval=setInterval(gameLoop,400); }
+        function placeFood() { food={x:Math.floor(Math.random()*15),y:Math.floor(Math.random()*15)}; }
+        function gameLoop() { let head={x:snake[0].x+snakeDir.x,y:snake[0].y+snakeDir.y}; if(head.x<0||head.x>=15||head.y<0||head.y>=15||snake.some(s=>s.x===head.x&&s.y===head.y)){snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];score=0;head={x:10,y:10};snakeDir={x:1,y:0};} snake.unshift(head); if(head.x===food.x&&head.y===food.y){score++;placeFood();if(score>=5){
+            document.getElementById('msg-2').style.display='block';
+            document.getElementById('snake-exit-btn').style.display='block';
+            document.getElementById('close-2').style.display='block';
+        }}else{snake.pop();} drawSnake(); }
+        function drawSnake() { sCtx.fillStyle="#000"; sCtx.fillRect(0,0,300,300); let full="SEVEN", show=Math.min(score,5), cur=full.substring(0,show); sCtx.fillStyle="#222"; sCtx.font="bold 80px Cinzel"; sCtx.textAlign="center"; sCtx.textBaseline="middle"; sCtx.fillText(cur,150,150); sCtx.fillStyle="#cfa156"; snake.forEach(s=>sCtx.fillRect(s.x*20,s.y*20,18,18)); sCtx.fillStyle="#8a0a0a"; sCtx.fillRect(food.x*20,food.y*20,18,18); }
+
+        function tryFinalDoor() {
+            if(visited.size < 4) alert("Visit all 4 rooms first.");
+            else document.getElementById('passcode-modal').style.display = 'flex';
+        }
+        function checkFinalCode() {
+            const input = document.getElementById('passcode-input').value;
+            const wrongVidContainer = document.getElementById('wrong-video-container');
+            const wrongVid = document.getElementById('wrong-video');
+            
+            if(input === "57228") {
+                document.querySelectorAll('.modal').forEach(m=>m.style.display='none');
+                document.getElementById('hallway-scene').style.display='none';
+                musicShouldPlay = false; 
+                document.getElementById('bg-music').pause();
+                
+                let finalAudio = document.getElementById('room6-audio');
+                if(finalAudio) finalAudio.play();
+
+                document.getElementById('final-scene').style.display = 'flex';
+                createFinalParticles();
+            } else {
+                wrongVidContainer.style.display = 'block';
+                wrongVid.currentTime = 0;
+                wrongVid.play();
+                setTimeout(() => {
+                    wrongVidContainer.style.display = 'none';
+                    wrongVid.pause();
+                }, 4000); 
+            }
+        }
+
+        function backToHallwayFromFinal() {
+            document.getElementById('final-scene').style.display = 'none';
+            document.getElementById('hallway-scene').style.display = 'flex';
+            let finalAudio = document.getElementById('room6-audio');
+            if(finalAudio) { finalAudio.pause(); finalAudio.currentTime=0; }
+            resumeBgMusic();
+        }
+    </script>
+</body>
+</html>
