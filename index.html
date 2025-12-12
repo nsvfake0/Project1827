@@ -6,7 +6,7 @@
     <title>The Royal Mystery</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400&family=Great+Vibes&display=swap" rel="stylesheet">
     <style>
-        /* --- PERFORMANCE & LUXURY RESET --- */
+        /* --- LUXURY RESET & VARIABLES --- */
         * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
         
         :root { 
@@ -28,238 +28,97 @@
 
         /* --- LOADING SCREEN --- */
         #loader {
-            position: fixed; inset: 0; z-index: 9999;
-            background: #000;
+            position: fixed; inset: 0; z-index: 9999; background: #000;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             transition: opacity 1s ease;
         }
-        .loader-text {
-            color: var(--lux-gold); font-family: var(--font-head); font-size: 1.5rem; letter-spacing: 5px;
-            animation: pulse 1.5s infinite;
-        }
-        .loader-bar {
-            width: 200px; height: 2px; background: #333; margin-top: 20px;
-            position: relative; overflow: hidden;
-        }
-        .loader-progress {
-            position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: var(--lux-gold);
-            animation: loadAnim 2s infinite linear;
-        }
+        .loader-text { color: var(--lux-gold); font-family: var(--font-head); font-size: 1.5rem; letter-spacing: 5px; animation: pulse 1.5s infinite; }
+        .loader-bar { width: 200px; height: 2px; background: #333; margin-top: 20px; position: relative; overflow: hidden; }
+        .loader-progress { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: var(--lux-gold); animation: loadAnim 2s infinite linear; }
         @keyframes loadAnim { 0% { left: -50%; } 100% { left: 100%; } }
 
         /* --- SCENES --- */
-        #intro-scene, #hallway-scene, #final-scene { position: fixed; inset: 0; width: 100%; height: 100%; }
+        #intro-scene, #hallway-scene, #final-scene, #instruction-scene { position: fixed; inset: 0; width: 100%; height: 100%; }
         
         #intro-scene { 
-            z-index: 100; 
-            background: var(--lux-black); 
+            z-index: 100; background: var(--lux-black); 
             display: flex; justify-content: center; align-items: center; 
-            opacity: 0; transition: opacity 1.5s ease; /* Hidden by default until loaded */
+            opacity: 0; transition: opacity 1.5s ease; 
+        }
+
+        #instruction-scene {
+            z-index: 90; display: none; background: rgba(0,0,0,0.95);
+            flex-direction: column; justify-content: center; align-items: center;
+            padding: 30px;
         }
 
         /* VIDEO OPTIMIZATION */
         #intro-video, #corridor-video-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-        
-        /* OVERLAY - Simplified for performance */
-        .overlay { 
-            position: absolute; inset: 0; 
-            background: radial-gradient(circle at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.8) 100%); 
-            z-index: 1; 
-            pointer-events: none;
-        }
-
+        .overlay { position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.8) 100%); z-index: 1; pointer-events: none; }
         #hallway-scene { display: none; z-index: 50; flex-direction: column; align-items: center; justify-content: center; }
 
-        /* --- UI ELEMENTS --- */
-        h2 {
-            font-family: var(--font-head);
-            color: var(--lux-gold);
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            font-size: 1.8rem;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
-            margin-bottom: 20px;
-            position: relative; z-index: 10;
+        /* --- INSTRUCTIONS MODAL --- */
+        .instruction-card {
+            background: var(--lux-brown); border: 1px solid var(--lux-gold);
+            padding: 20px; width: 100%; max-width: 500px;
+            text-align: center; position: relative;
+            max-height: 70vh; overflow-y: auto; /* SCROLLABLE */
         }
+        .instruction-text {
+            font-family: var(--font-body); font-size: 1rem; line-height: 1.6; color: #ccc; margin: 20px 0;
+            text-align: left; padding: 0 10px;
+        }
+        .timer-bar { width: 100%; height: 4px; background: #333; margin-top: 20px; }
+        .timer-fill { height: 100%; background: var(--lux-gold); width: 0%; transition: width 20s linear; }
 
-        /* --- DOORS --- */
-        .door-grid { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 15px; 
-            margin-top: 20px; 
-            position: relative; 
-            z-index: 10;
-            width: 90%; max-width: 400px;
-        }
+        /* --- UI ELEMENTS --- */
+        h2 { font-family: var(--font-head); color: var(--lux-gold); text-transform: uppercase; letter-spacing: 4px; font-size: 1.8rem; text-shadow: 0 2px 5px rgba(0,0,0,0.8); margin-bottom: 20px; position: relative; z-index: 10; }
+
+        .door-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px; position: relative; z-index: 10; width: 90%; max-width: 400px; }
         #final-door-wrapper { grid-column: span 2; display: flex; justify-content: center; }
         
-        .door-card {
-            width: 100%;
-            height: 130px;
-            background: rgba(20, 20, 20, 0.7); /* Darker, less blur for performance */
-            border: 1px solid rgba(207, 161, 86, 0.3);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; 
-            position: relative;
-        }
+        .door-card { width: 100%; height: 130px; background: rgba(20, 20, 20, 0.7); border: 1px solid rgba(207, 161, 86, 0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
         .door-card:active { border-color: var(--lux-gold); background: rgba(50,50,50,0.8); }
         .door-status { font-size: 2.5rem; filter: drop-shadow(0 0 5px rgba(207,161,86,0.5)); }
         .door-locked { filter: grayscale(1); opacity: 0.7; border-color: #333; }
 
-        /* --- MODALS --- */
-        .modal { 
-            display: none; position: fixed; inset: 0; z-index: 200; 
-            background: rgba(0,0,0,0.95); 
-            justify-content: center; align-items: center; padding: 20px; 
-        }
-        
-        .modal-content {
-            background-color: var(--lux-brown);
-            border: 1px solid var(--lux-gold);
-            padding: 25px; 
-            text-align: center; 
-            width: 100%; max-width: 500px; 
-            position: relative;
-            box-shadow: 0 0 30px rgba(0,0,0,0.9);
-            max-height: 90vh; overflow-y: auto; 
-        }
-        .modal-overlay-bg { display: none; } 
+        .modal { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.95); justify-content: center; align-items: center; padding: 20px; }
+        .modal-content { background-color: var(--lux-brown); border: 1px solid var(--lux-gold); padding: 25px; text-align: center; width: 100%; max-width: 500px; position: relative; box-shadow: 0 0 30px rgba(0,0,0,0.9); max-height: 90vh; overflow-y: auto; }
 
-        /* --- BUTTONS --- */
-        .btn-action, .start-btn, .back-hallway-btn, #success-exit-btn {
-            background: rgba(0,0,0,0.8); 
-            border: 1px solid var(--lux-gold);
-            color: var(--lux-gold);
-            padding: 12px 30px;
-            font-family: var(--font-head);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-top: 20px;
-            position: relative; 
-            z-index: 1000; 
-        }
-        
-        .start-btn {
-             box-shadow: 0 0 15px rgba(207,161,86,0.3);
-             animation: pulse 2s infinite;
-        }
-
+        .btn-action, .start-btn, .back-hallway-btn, #success-exit-btn { background: rgba(0,0,0,0.8); border: 1px solid var(--lux-gold); color: var(--lux-gold); padding: 12px 30px; font-family: var(--font-head); text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem; cursor: pointer; transition: 0.2s; margin-top: 20px; position: relative; z-index: 1000; }
+        .start-btn { box-shadow: 0 0 15px rgba(207,161,86,0.3); animation: pulse 2s infinite; }
         .close-btn { position: absolute; right: 15px; top: 10px; font-size: 30px; cursor: pointer; color: var(--lux-gold); z-index: 10; font-weight: 100; }
 
-        /* --- PUZZLE 4x4 --- */
-        #puzzle-container {
-            display: grid; 
-            grid-template-columns: repeat(4, 75px); 
-            grid-template-rows: repeat(4, 75px);    
-            width: 306px; height: 306px; 
-            margin: 0 auto; 
-            background: #222; 
-            border: 2px solid var(--lux-gold); 
-            gap: 2px; 
-        }
-        .puzzle-tile { 
-            width: 75px; height: 75px; 
-            background-size: 306px 306px; 
-            cursor: pointer; 
-        }
+        #puzzle-container { display: grid; grid-template-columns: repeat(4, 75px); grid-template-rows: repeat(4, 75px); width: 306px; height: 306px; margin: 0 auto; background: #222; border: 2px solid var(--lux-gold); gap: 2px; }
+        .puzzle-tile { width: 75px; height: 75px; background-size: 306px 306px; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); }
         .puzzle-empty { background: #000 !important; opacity: 0.5; }
 
-        /* --- SNAKE --- */
-        #snake-canvas { background: #000; border: 1px solid var(--lux-gold); margin: 0 auto; display: block; max-width: 100%; }
-
-        /* --- VIDEOS --- */
+        #snake-canvas { background: #000; border: 1px solid var(--lux-gold); margin: 0 auto; display: block; max-width: 100%; box-shadow: 0 0 20px rgba(207,161,86,0.1); }
         video { border-radius: 0; border: 1px solid #333; }
-        
         #wrong-video-container { display: none; margin-top: 15px; }
         #wrong-video { width: 100%; max-width: 300px; border: 1px solid var(--neon-red); }
 
-        /* --- FINAL SCENE --- */
-        #final-scene { 
-            display: none; z-index: 200; 
-            background: #111; /* Removed gradient animation for performance */
-            background: radial-gradient(circle at center, #2c1b18 0%, #000000 100%);
-            color: var(--lux-gold); 
-            text-align: center; 
-            flex-direction: column; justify-content: center; align-items: center;
-            padding: 20px;
-        }
+        #final-scene { display: none; z-index: 200; background: radial-gradient(circle at center, #2c1b18 0%, #000000 100%); color: var(--lux-gold); text-align: center; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        .final-glass-card { background: rgba(0, 0, 0, 0.7); border: 1px solid var(--lux-gold); padding: 40px; max-width: 600px; width: 100%; position: relative; z-index: 205; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        .final-title { font-family: var(--font-head); font-size: 2rem; margin-bottom: 20px; color: var(--lux-white); text-shadow: 0 0 10px rgba(207,161,86,0.5); letter-spacing: 3px; }
+        .final-body { font-size: 1rem; line-height: 2; margin-bottom: 30px; font-family: var(--font-body); color: #ccc; letter-spacing: 1px; }
+        .final-signature { font-family: 'Great Vibes', cursive; font-size: 2.5rem; color: var(--lux-gold); display: block; margin-top: 30px; }
 
-        .final-glass-card {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid var(--lux-gold);
-            padding: 40px;
-            max-width: 600px;
-            width: 100%;
-            position: relative;
-            z-index: 205;
-        }
+        .particle { position: absolute; border-radius: 50%; background: var(--lux-gold); box-shadow: 0 0 5px var(--lux-gold); animation: floatParticle 20s infinite linear; z-index: 201; opacity: 0.6; }
+        @keyframes floatParticle { 0% { transform: translateY(0) rotate(0deg); opacity: 0; } 20% { opacity: 0.8; } 100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; } }
 
-        .final-title {
-            font-family: var(--font-head);
-            font-size: 2rem;
-            margin-bottom: 20px;
-            color: var(--lux-white);
-            text-shadow: 0 0 10px rgba(207,161,86,0.5);
-            letter-spacing: 3px;
-        }
-
-        .final-body {
-            font-size: 1rem;
-            line-height: 2;
-            margin-bottom: 30px;
-            font-family: var(--font-body);
-            color: #ccc;
-            letter-spacing: 1px;
-        }
-
-        .final-signature {
-            font-family: 'Great Vibes', cursive;
-            font-size: 2.5rem;
-            color: var(--lux-gold);
-            display: block;
-            margin-top: 30px;
-        }
-
-        .particle {
-            position: absolute; border-radius: 50%; background: var(--lux-gold);
-            box-shadow: 0 0 2px var(--lux-gold); animation: floatParticle 20s infinite linear; z-index: 201; opacity: 0.4;
-        }
-        @keyframes floatParticle {
-            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-            20% { opacity: 0.8; }
-            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
-        }
-
-        /* HEARTS - Optimized */
         #hearts-layer { position: absolute; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
-        .floating-heart {
-            position: absolute; bottom: -50px; font-size: 20px; color: #8a0a0a; 
-            animation: floatUp linear infinite;
-        }
-        @keyframes floatUp {
-            0% { transform: translateY(0) scale(1); opacity: 0; }
-            50% { opacity: 0.6; }
-            100% { transform: translateY(-110vh) scale(1.2); opacity: 0; }
-        }
+        .floating-heart { position: absolute; bottom: -50px; font-size: 20px; color: #8a0a0a; text-shadow: 0 0 5px rgba(0,0,0,0.8); animation: floatUp linear infinite; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 0; } 50% { opacity: 0.6; } 100% { transform: translateY(-110vh) scale(1.2); opacity: 0; } }
         
         #dev-btn { position: absolute; top: 10px; left: 10px; z-index: 200; background: transparent; border: none; color: rgba(255,255,255,0.05); font-size: 20px; cursor: pointer; }
-        
-        #passcode-input {
-            background: transparent; border: none; border-bottom: 1px solid var(--lux-gold);
-            color: var(--lux-gold); font-family: var(--font-head); font-size: 2rem; width: 200px; text-align: center; margin-bottom: 20px; letter-spacing: 5px;
-        }
+        #passcode-input { background: transparent; border: none; border-bottom: 1px solid var(--lux-gold); color: var(--lux-gold); font-family: var(--font-head); font-size: 2rem; width: 200px; text-align: center; margin-bottom: 20px; letter-spacing: 5px; }
         #passcode-input::placeholder { color: rgba(207,161,86, 0.3); }
         #passcode-input:focus { outline: none; border-bottom: 2px solid var(--lux-gold); }
 
         .riddle-text { font-family: var(--font-head); font-size: 1.1rem; line-height: 1.6; color: #ccc; margin-top: 10px; }
         .riddle-highlight { color: var(--lux-gold); display: block; margin-top: 15px; font-size: 1.3rem; }
-        
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-
     </style>
 </head>
 <body>
@@ -271,17 +130,37 @@
 
     <audio id="bg-music" loop preload="auto"><source src="song.mp3" type="audio/mp3"></audio>
     <audio id="transition-audio" preload="auto"><source src="transition.mp3" type="audio/mp3"></audio>
-    <audio id="door1-audio" preload="auto"><source src="door1.mp3" type="audio/mp3"></audio>
+    <audio id="room1-song" preload="auto"><source src="room1.mp3" type="audio/mp3"></audio> <audio id="door1-audio" preload="auto"><source src="door1.mp3" type="audio/mp3"></audio>
     <audio id="door2-audio" preload="auto"><source src="door2.mp3" type="audio/mp3"></audio>
     <audio id="door3-audio" preload="auto"><source src="door3.mp3" type="audio/mp3"></audio>
     <audio id="door4-audio" preload="auto"><source src="door4.mp3" type="audio/mp3"></audio>
-    <audio id="room6-audio" preload="auto"><source src="room6.mp3" type="audio/mp3"></audio>
+    
+    <audio id="room6-audio" loop preload="auto"><source src="room6.mp3" type="audio/mp3"></audio> 
 
     <div id="intro-scene">
         <button id="dev-btn" onclick="activateDevMode()">π</button>
-        <video id="intro-video" muted playsinline webkit-playsinline loop preload="auto"><source src="intro.mp4" type="video/mp4"></video>
+        <video id="intro-video" muted playsinline webkit-playsinline preload="auto" onended="showInstructions()"><source src="intro.mp4" type="video/mp4"></video>
         <div class="overlay"></div>
         <button class="start-btn" onclick="startExperience()">Enter The Mystery</button>
+    </div>
+
+    <div id="instruction-scene">
+        <div class="instruction-card">
+            <h2>Mission Briefing</h2>
+            <div class="instruction-text">
+                Welcome to the Hall of Memories.<br><br>
+                To unlock the final surprise, you must prove your worth by gathering clues from each room.<br><br>
+                1. <strong>Fragments:</strong> Solve the center of the puzzle to find clarity.<br>
+                2. <strong>Serpent:</strong> Feed the snake 5 times to reveal the digit.<br>
+                3. <strong>Memory Lane:</strong> Watch closely and answer the riddle.<br>
+                4. <strong>Sequence:</strong> Solve the number riddle.<br><br>
+                The path is linear. There is no turning back until the task is complete.
+                <br><br>
+                Good luck.
+            </div>
+            <div class="timer-bar"><div class="timer-fill" id="timer-fill"></div></div>
+            <button class="btn-action" onclick="finishInstructions()">Begin</button>
+        </div>
     </div>
 
     <div id="hallway-scene">
@@ -400,11 +279,10 @@
         };
 
         let visited = new Set();
-        let cheatTimer;
+        let cheatTimer, instructionTimer;
         let musicShouldPlay = false; 
         let devMode = false;
 
-        // --- LOADING LOGIC ---
         window.onload = function() {
             setTimeout(() => {
                 document.getElementById('loader').style.opacity = '0';
@@ -412,7 +290,7 @@
                     document.getElementById('loader').style.display = 'none'; 
                     document.getElementById('intro-scene').style.opacity = '1';
                 }, 1000);
-            }, 2000); // Forced 2s wait to ensure smoother playback
+            }, 2000);
         };
 
         function playTransition() {
@@ -447,13 +325,13 @@
                 heart.style.animationDuration = duration + 's';
                 container.appendChild(heart);
                 setTimeout(() => { heart.remove(); }, duration * 1000);
-            }, 1800); // SLOWED DOWN FOR PERFORMANCE
+            }, 1800);
         }
 
         function createFinalParticles() {
             const container = document.getElementById('final-particles');
             container.innerHTML = '';
-            for(let i=0; i<30; i++) { // REDUCED COUNT FOR PERFORMANCE
+            for(let i=0; i<30; i++) {
                 const p = document.createElement('div');
                 p.classList.add('particle');
                 p.style.left = Math.random() * 100 + '%';
@@ -474,24 +352,43 @@
         function startExperience() {
             musicShouldPlay = true; 
             let introVid = document.getElementById('intro-video');
-            introVid.play();
+            introVid.play(); 
             document.getElementById('bg-music').volume = 0.5;
             document.getElementById('bg-music').play().catch(e => console.log("Audio Play prevented"));
             
             document.querySelector('.start-btn').style.opacity = '0';
             document.querySelector('#dev-btn').style.opacity = '0';
+        }
+
+        // --- INSTRUCTION LOGIC ---
+        function showInstructions() {
+            document.getElementById('intro-scene').style.display = 'none';
+            document.getElementById('instruction-scene').style.display = 'flex';
             
+            // Start Timer Animation
             setTimeout(() => {
-                document.getElementById('intro-scene').style.display = 'none';
-                document.getElementById('hallway-scene').style.display = 'flex';
-                document.getElementById('corridor-video-bg').play();
-                createFloatingHearts();
-            }, 1500);
+                document.getElementById('timer-fill').style.width = '100%';
+            }, 100);
+
+            // Auto close after 20s
+            instructionTimer = setTimeout(() => {
+                finishInstructions();
+            }, 35000); 
+        }
+
+        function finishInstructions() {
+            clearTimeout(instructionTimer);
+            playTransition();
+            document.getElementById('instruction-scene').style.display = 'none';
+            document.getElementById('hallway-scene').style.display = 'flex';
+            document.getElementById('corridor-video-bg').play();
+            createFloatingHearts();
         }
 
         function stopAudio() {
             musicShouldPlay = false; 
             document.getElementById('bg-music').pause();
+            document.getElementById('room1-song').pause(); 
             for(let i=1; i<=4; i++) { let s = document.getElementById(`door${i}-audio`); if(s) { s.pause(); s.currentTime=0; } }
         }
 
@@ -527,6 +424,10 @@
 
             if (id === 1) {
                 document.getElementById('modal-1').style.display = 'flex';
+                // PLAY ROOM 1 SONG
+                let r1s = document.getElementById('room1-song');
+                if(r1s) { r1s.currentTime=0; r1s.play(); }
+
                 if(devMode || puzzleSolved) { 
                     document.getElementById('close-1').style.display = 'block'; 
                     document.getElementById('success-exit-btn').style.display = 'block';
@@ -676,8 +577,12 @@
                 musicShouldPlay = false; 
                 document.getElementById('bg-music').pause();
                 
+                // PLAY FINAL SONG
                 let finalAudio = document.getElementById('room6-audio');
-                if(finalAudio) finalAudio.play();
+                if(finalAudio) {
+                    finalAudio.currentTime = 0;
+                    finalAudio.play();
+                }
 
                 document.getElementById('final-scene').style.display = 'flex';
                 createFinalParticles();
